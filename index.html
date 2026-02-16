@@ -1,18 +1,136 @@
-<model-viewer id="viewer" src="projet1.glb" camera-controls shadow-intensity="1" exposure="1.2">
-    <div style="position: absolute; top: 10px; left: 10px; background: white; padding: 15px; border-radius: 8px; font-family: sans-serif;">
-        <label>Coupe Horizontale (BIM Section):</label><br>
-        <input type="range" id="clip" min="0" max="2" step="0.01" value="2">
-    </div>
-</model-viewer>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Portfolio Archi 3D - Mode Maquette</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ffffff; }
+        #myCanvas { width: 100vw; height: 100vh; display: block; }
+        
+        /* Interface de contrôle style épuré */
+        #controls {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px; border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            z-index: 1000; width: 220px;
+        }
+        h3 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .group { margin-bottom: 20px; }
+        button {
+            width: 100%; margin-bottom: 5px; padding: 8px;
+            border: 1px solid #ddd; border-radius: 6px;
+            background: white; cursor: pointer; transition: 0.3s;
+            font-size: 13px; text-align: left;
+        }
+        button:hover { background: #f0f0f0; border-color: #bbb; }
+        button.active { background: #000; color: #fff; border-color: #000; }
+        
+        label { font-size: 12px; color: #666; display: block; margin-top: 10px; }
+        input[type="range"] { width: 100%; margin-top: 5px; }
+    </style>
+</head>
+<body>
 
-<script>
-    const modelViewer = document.querySelector("#viewer");
-    const checkbox = document.querySelector('#clip');
-    
-    // Cette fonction simule une coupe en abaissant le plan de visibilité
-    document.querySelector('#clip').addEventListener('input', (event) => {
-        const height = event.target.value;
-        // On joue sur l'échelle ou le clipping selon le format
-        modelViewer.style.clipPath = `inset(0 0 ${100 - (height * 50)}% 0)`; 
-        // Note : Pour une vraie coupe BIM, Xeokit est nécessaire (code plus long)
-    </script>
+<canvas id="myCanvas"></canvas>
+
+<div id="controls">
+    <div class="group">
+        <h3>Modes de Rendu</h3>
+        <button id="btn-mono" class="active" onclick="setMode('mono')">⚪ Maquette Blanche</button>
+        <button id="btn-real" onclick="setMode('real')">🎨 Réaliste (Textures)</button>
+        <button id="btn-wire" onclick="setMode('wire')">🕸️ Filaire (Wireframe)</button>
+    </div>
+
+    <div class="group">
+        <h3>Sections Coupes</h3>
+        <label>Axe X (Longitudinal)</label>
+        <input type="range" id="clipX" min="-100" max="100" value="100">
+        <label>Axe Y (Vertical)</label>
+        <input type="range" id="clipY" min="-100" max="100" value="100">
+        <label>Axe Z (Transversal)</label>
+        <input type="range" id="clipZ" min="-100" max="100" value="100">
+    </div>
+</div>
+
+<script type="module">
+    import {Viewer, GLTFLoaderPlugin, SectionPlanesPlugin} from "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
+
+    // 1. Configuration du Viewer avec Occlusion Ambiante (SAO)
+    const viewer = new Viewer({
+        canvasId: "myCanvas",
+        transparent: false,
+        backgroundColor: [1, 1, 1] // Fond blanc pur
+    });
+
+    // Activer l'Occlusion Ambiante (les ombres de contact)
+    const sao = viewer.scene.sao;
+    sao.enabled = true;
+    sao.intensity = 0.5;
+    sao.radius = 0.2;
+    sao.bias = 0.5;
+
+    // 2. Plugins pour le chargement et les coupes
+    const loader = new GLTFLoaderPlugin(viewer);
+    const sections = new SectionPlanesPlugin(viewer);
+
+    // 3. Charger votre modèle
+    const model = loader.load({
+        id: "myModel",
+        src: "projet1.glb", // Assurez-vous que le nom du fichier est correct
+        edges: true // Affiche les lignes de contours par défaut
+    });
+
+    // Ajuster la caméra au chargement
+    model.on("loaded", () => {
+        viewer.cameraFlight.jumpTo(model);
+        setMode('mono'); // Force le mode maquette au départ
+    });
+
+    // 4. Gestion des Modes de Rendu
+    window.setMode = (mode) => {
+        // Reset styles
+        document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        
+        if (mode === 'mono') {
+            document.getElementById('btn-mono').classList.add('active');
+            viewer.scene.setObjectsColor(viewer.scene.objectIds, [1, 1, 1]); // Tout blanc
+            viewer.scene.setObjectsOpacity(viewer.scene.objectIds, 1.0);
+            viewer.scene.edgeMaterial.edges = true; // Lignes grises fines
+            viewer.scene.edgeMaterial.edgeColor = [0.4, 0.4, 0.4];
+        } 
+        else if (mode === 'real') {
+            document.getElementById('btn-real').classList.add('active');
+            viewer.scene.setObjectsColor(viewer.scene.objectIds, null); // Restaure textures
+            viewer.scene.edgeMaterial.edges = false; 
+        } 
+        else if (mode === 'wire') {
+            document.getElementById('btn-wire').classList.add('active');
+            viewer.scene.setObjectsColor(viewer.scene.objectIds, [0, 0, 0]);
+            viewer.scene.setObjectsXRayed(viewer.scene.objectIds, true); // Effet transparent/filaire
+        }
+    };
+
+    // 5. Gestion des Coupes (Sections)
+    const planeX = sections.createSectionPlane({ id: "cpX", pos: [0, 0, 0], dir: [-1, 0, 0] });
+    const planeY = sections.createSectionPlane({ id: "cpY", pos: [0, 0, 0], dir: [0, -1, 0] });
+    const planeZ = sections.createSectionPlane({ id: "cpZ", pos: [0, 0, 0], dir: [0, 0, -1] });
+
+    const setupSlider = (id, plane) => {
+        document.getElementById(id).oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            plane.pos = [
+                plane.dir[0] === -1 ? val : 0,
+                plane.dir[1] === -1 ? val : 0,
+                plane.dir[2] === -1 ? val : 0
+            ];
+        };
+    };
+
+    setupSlider("clipX", planeX);
+    setupSlider("clipY", planeY);
+    setupSlider("clipZ", planeZ);
+
+</script>
+</body>
+</html>

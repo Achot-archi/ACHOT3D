@@ -2,65 +2,53 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Visualiseur Architecture Pro</title>
+    <title>BIM Viewer Pro - Rhino Style</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #ffffff; }
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: #f5f5f7; }
         canvas { width: 100vw; height: 100vh; display: block; }
         
-        /* Panneau de contrôle */
         #menu {
             position: absolute; top: 20px; left: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px; border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 100; width: 240px;
-            border: 1px solid #eee;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+            padding: 15px; border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            z-index: 100; width: 220px; border: 1px solid rgba(255,255,255,0.3);
         }
 
-        h3 { margin: 0 0 15px 0; font-size: 14px; color: #333; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { margin: 0 0 12px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         
-        .section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        .section:last-child { border-bottom: none; }
+        .group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
 
         button {
-            width: 100%; margin-bottom: 8px; padding: 10px;
-            border: 1px solid #ddd; border-radius: 6px;
-            background: white; cursor: pointer; transition: all 0.2s;
+            width: 100%; padding: 10px; border: 1px solid #eee; border-radius: 8px;
+            background: white; cursor: pointer; transition: 0.2s;
             font-size: 13px; font-weight: 500; text-align: left;
         }
-        button:hover { background: #f8f8f8; border-color: #bbb; }
-        button.active { background: #000; color: #fff; border-color: #000; }
+        button:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        button.active { background: #007aff; color: #fff; border-color: #007aff; }
         
-        label { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
-        input[type="range"] { width: 100%; margin-bottom: 10px; accent-color: #000; }
-        
-        .reset-btn { background: #ff4757; color: white; border: none; text-align: center; }
-        .reset-btn:hover { background: #ff6b81; }
+        .hint { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <div class="section">
-        <h3>🏠 Modes de Rendu</h3>
-        <button id="btnMono" class="active" onclick="setMode('mono')">⚪ Maquette Blanche</button>
-        <button id="btnReal" onclick="setMode('real')">🎨 Rendu Réaliste</button>
-        <button id="btnWire" onclick="setMode('wire')">🕸️ Vue Filaire</button>
+    <h3>Affichage</h3>
+    <div class="group">
+        <button id="btn-mono" class="active" onclick="changeStyle('mono')">⚪ Maquette Blanche</button>
+        <button id="btn-real" onclick="changeStyle('real')">🎨 Textures Rhino</button>
+        <button id="btn-wire" onclick="changeStyle('wire')">🕸️ Mode Structure</button>
     </div>
 
-    <div class="section">
-        <h3>✂️ Coupes (Rhino style)</h3>
-        <label>Axe X (Longueur)</label>
-        <input type="range" id="clipX" min="-100" max="100" value="100">
-        
-        <label>Axe Y (Hauteur/BIM)</label>
-        <input type="range" id="clipY" min="-100" max="100" value="100">
-        
-        <label>Axe Z (Largeur)</label>
-        <input type="range" id="clipZ" min="-100" max="100" value="100">
+    <h3>Outils</h3>
+    <div class="group">
+        <button onclick="createGumball()">➕ Ajouter Coupe (Gumball)</button>
+        <button onclick="clearSections()" style="color:#ff3b30">🗑️ Supprimer les coupes</button>
     </div>
 
-    <button class="reset-btn" onclick="resetView()">🔄 Réinitialiser la vue</button>
+    <div class="hint">
+        <b>Gumball :</b> Cliquez sur une flèche pour déplacer le plan de coupe.
+    </div>
 </div>
 
 <canvas id="myCanvas"></canvas>
@@ -68,82 +56,82 @@
 <script type="module">
     import {Viewer, GLTFLoaderPlugin, SectionPlanesPlugin} from "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
 
-    // 1. Initialisation du Viewer avec Occlusion Ambiante
+    // 1. Initialisation Performance
     const viewer = new Viewer({
         canvasId: "myCanvas",
-        transparent: false,
-        backgroundColor: [1, 1, 1]
+        saoEnabled: true, // Ambiant Occlusion
+        pbrEnabled: true  // Meilleur rendu des textures
     });
 
-    // Configuration des ombres douces (SSAO)
-    viewer.scene.sao.enabled = true;
-    viewer.scene.sao.intensity = 0.7;
-    viewer.scene.sao.radius = 0.5;
+    viewer.scene.sao.intensity = 0.8;
 
-    // 2. Activation des Plugins
     const loader = new GLTFLoaderPlugin(viewer);
-    const sections = new SectionPlanesPlugin(viewer);
+    const sectionPlanes = new SectionPlanesPlugin(viewer, {
+        overviewCanvasId: "myCanvas", // Permet l'interaction directe
+        active: true
+    });
 
-    // 3. Chargement du fichier projet1.glb
+    // 2. Chargement
     const model = loader.load({
         id: "myModel",
-        src: "./projet1.glb", // Assurez-vous que le fichier est au même niveau que index.html
-        edges: true
+        src: "./projet1.glb",
+        edges: true,
+        performance: true // Optimise le FPS
     });
 
     model.on("loaded", () => {
         viewer.cameraFlight.jumpTo(model);
-        window.setMode('mono'); // Force le mode monochrome au départ
+        // Force l'application du style blanc après un court délai pour être sûr que les IDs sont là
+        setTimeout(() => changeStyle('mono'), 500);
     });
 
-    // 4. Logique des Boutons de Rendu
-    window.setMode = (mode) => {
+    // 3. Système de Styles (Corrigé pour fonctionner à 100%)
+    window.changeStyle = (style) => {
+        const allIds = viewer.scene.objectIds;
+        
+        // Reset boutons
         document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         
-        if (mode === 'mono') {
-            document.getElementById('btnMono').classList.add('active');
-            viewer.scene.setObjectsColor(viewer.scene.objectIds, [1, 1, 1]); // Blanc
-            viewer.scene.setObjectsXRayed(viewer.scene.objectIds, false);
+        if (style === 'mono') {
+            document.getElementById('btn-mono').classList.add('active');
+            viewer.scene.setObjectsColor(allIds, [1, 1, 1]);
+            viewer.scene.setObjectsOpacity(allIds, 1.0);
             viewer.scene.edgeMaterial.edges = true;
-            viewer.scene.edgeMaterial.edgeColor = [0.3, 0.3, 0.3]; // Lignes grises
         } 
-        else if (mode === 'real') {
-            document.getElementById('btnReal').classList.add('active');
-            viewer.scene.setObjectsColor(viewer.scene.objectIds, null); // Restaure textures
+        else if (style === 'real') {
+            document.getElementById('btn-real').classList.add('active');
+            viewer.scene.setObjectsColor(allIds, null); // Restaure les textures originales
             viewer.scene.edgeMaterial.edges = false;
         } 
-        else if (mode === 'wire') {
-            document.getElementById('btnWire').classList.add('active');
-            viewer.scene.setObjectsXRayed(viewer.scene.objectIds, true); // Effet transparent
+        else if (style === 'wire') {
+            document.getElementById('btn-wire').classList.add('active');
+            viewer.scene.setObjectsColor(allIds, [0.2, 0.2, 0.2]);
+            viewer.scene.setObjectsOpacity(allIds, 0.3);
             viewer.scene.edgeMaterial.edges = true;
         }
     };
 
-    // 5. Logique des Coupes
-    const pX = sections.createSectionPlane({ id:"pX", pos:[0,0,0], dir:[-1, 0, 0] });
-    const pY = sections.createSectionPlane({ id:"pY", pos:[0,0,0], dir:[0, -1, 0] });
-    const pZ = sections.createSectionPlane({ id:"pZ", pos:[0,0,0], dir:[0, 0, -1] });
-
-    const setupClip = (id, plane) => {
-        document.getElementById(id).oninput = (e) => {
-            const val = parseFloat(e.target.value);
-            // On multiplie par 0.5 ou plus selon la taille du projet
-            plane.pos = [plane.dir[0]*val, plane.dir[1]*val, plane.dir[2]*val];
-        };
+    // 4. Gumball Rhino (Section Plane Control)
+    let planeCount = 0;
+    window.createGumball = () => {
+        const plane = sectionPlanes.createSectionPlane({
+            id: "plane" + planeCount++,
+            pos: [0, 0, 0],
+            dir: [0, -1, 0] // Coupe horizontale par défaut
+        });
+        
+        // Active le "Gumball" (les flèches de manipulation)
+        sectionPlanes.showControl(plane.id);
     };
 
-    setupClip("clipX", pX);
-    setupClip("clipY", pY);
-    setupClip("clipZ", pZ);
-
-    // 6. Réinitialiser la vue
-    window.resetView = () => {
-        viewer.cameraFlight.flyTo(model);
-        document.getElementById("clipX").value = 100;
-        document.getElementById("clipY").value = 100;
-        document.getElementById("clipZ").value = 100;
-        pX.pos = [100,0,0]; pY.pos = [0,100,0]; pZ.pos = [0,0,100];
+    window.clearSections = () => {
+        sectionPlanes.clear();
+        planeCount = 0;
     };
+
+    // 5. Amélioration Fluidité (Caméra)
+    viewer.cameraControl.followPointer = true;
+    viewer.cameraControl.smartPivot = true;
 
 </script>
 </body>

@@ -2,95 +2,145 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Architectural Portfolio 3D</title>
+    <title>Architectural Portfolio Pro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #ffffff; font-family: 'Segoe UI', sans-serif; }
-        model-viewer { width: 100vw; height: 100vh; --poster-color: transparent; background-color: #f4f4f7; }
+        :root { --accent: #007aff; --bg: #ffffff; }
+        body { margin: 0; padding: 0; background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; color: #1d1d1f; }
         
+        model-viewer {
+            width: 100vw; height: 100vh;
+            background-color: var(--bg);
+            --poster-color: transparent;
+        }
+
+        /* Menu flottant style Apple / Notion */
         #menu {
-            position: absolute; top: 20px; left: 20px;
-            background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 10; width: 220px;
+            position: absolute; top: 24px; left: 24px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 20px; border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            z-index: 100; width: 220px;
+            border: 1px solid rgba(255,255,255,0.4);
         }
-        h3 { margin: 0 0 10px 0; font-size: 14px; color: #888; text-transform: uppercase; }
-        button {
-            width: 100%; padding: 10px; margin-bottom: 5px;
-            border: 1px solid #eee; border-radius: 6px;
-            background: #fff; cursor: pointer; transition: 0.2s;
-            font-size: 13px; text-align: left;
-        }
-        button:hover { background: #f0f0f0; }
-        button.active { background: #000; color: #fff; border-color: #000; }
+
+        h3 { margin: 0 0 12px 0; font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
         
-        .controls-info { font-size: 11px; color: #999; margin-top: 10px; }
+        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        
+        button {
+            appearance: none; border: 1px solid #d2d2d7; border-radius: 8px;
+            background: rgba(255,255,255,0.5); color: #1d1d1f;
+            padding: 10px 14px; font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left; display: flex; align-items: center; gap: 8px;
+        }
+
+        button:hover { background: #ffffff; border-color: #86868b; transform: translateY(-1px); }
+        button.active { background: #1d1d1f; color: #ffffff; border-color: #1d1d1f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        /* Tooltip style */
+        .info { font-size: 11px; color: #86868b; margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h3>Styles de Vue</h3>
-    <button id="btnMono" class="active" onclick="setStyle('mono')">⚪ Maquette Blanche</button>
-    <button id="btnReal" onclick="setStyle('real')">🎨 Rendu Réaliste</button>
-    <button id="btnWire" onclick="setStyle('wire')">🕸️ Mode Structure</button>
+    <h3>Style de la maquette</h3>
+    <div class="btn-group">
+        <button id="btnMono" class="active" onclick="applyStyle('mono')">
+            <span style="width:12px; height:12px; background:#fff; border:1px solid #d2d2d7; border-radius:50%"></span> 
+            Maquette Blanche
+        </button>
+        <button id="btnReal" onclick="applyStyle('real')">
+            <span style="width:12px; height:12px; background:linear-gradient(45deg, #ff3b30, #007aff); border-radius:50%"></span> 
+            Couleurs Réelles
+        </button>
+    </div>
 
-    <h3 style="margin-top:15px">Coupe</h3>
-    <button onclick="toggleSection()">✂️ Activer/Désactiver Coupe</button>
+    <h3>Analyse</h3>
+    <div class="btn-group">
+        <button id="btnClip" onclick="toggleClip()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Plan de Coupe (BIM)
+        </button>
+    </div>
     
-    <div class="controls-info">
-        <b>Rotation :</b> Un doigt / Clic gauche<br>
-        <b>Zoom :</b> Pincer / Molette
+    <div class="info">
+        <b>Navigation :</b><br>
+        Clic gauche : Rotation<br>
+        Molette : Zoom
     </div>
 </div>
 
 <model-viewer id="viewer" 
     src="projet1.glb" 
     camera-controls 
+    enable-pan
     shadow-intensity="2" 
-    shadow-softness="1"
-    exposure="1.2"
+    shadow-softness="0.3"
+    exposure="1.1"
     environment-image="neutral"
-    auto-rotate>
+    interpolation-decay="150"
+    interaction-prompt="none"
+    alt="Maquette architecturale 3D">
 </model-viewer>
 
 <script>
     const viewer = document.querySelector("#viewer");
 
-    window.setStyle = (mode) => {
-        // Reset boutons
-        document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-        
+    // Fonction pour changer le style des matériaux
+    async function applyStyle(mode) {
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(b => b.classList.remove('active'));
+
         if (mode === 'mono') {
             document.getElementById('btnMono').classList.add('active');
-            // Technique pour le mode maquette blanche
-            viewer.innerHTML = `<div slot="poster"></div>`;
-            viewer.style.filter = "saturate(0) brightness(1.2) contrast(1.1)";
+            
+            // On modifie les matériaux pour l'aspect plâtre/argile
+            const materials = viewer.model.materials;
+            materials.forEach((material) => {
+                // Force le blanc pur
+                material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+                // Supprime les reflets pour un aspect mat type maquette
+                material.pbrMetallicRoughness.setRoughnessFactor(0.85);
+                material.pbrMetallicRoughness.setMetallicFactor(0);
+            });
+            
+            // On renforce les ombres pour marquer les angles (AO)
+            viewer.shadowIntensity = 3.5;
+            viewer.shadowSoftness = 0.4;
         } 
-        else if (mode === 'real') {
+        else {
             document.getElementById('btnReal').classList.add('active');
-            viewer.style.filter = "none";
-        } 
-        else if (mode === 'wire') {
-            document.getElementById('btnWire').classList.add('active');
-            viewer.style.filter = "invert(1) grayscale(1) opacity(0.5)";
+            // On recharge le modèle pour restaurer textures et couleurs
+            viewer.src = "projet1.glb";
+            viewer.shadowIntensity = 1.5;
         }
-    };
+    }
 
-    // Système de coupe simplifié (Clipping)
-    let isClipped = false;
-    window.toggleSection = () => {
-        isClipped = !isClipped;
-        if (isClipped) {
-            // On utilise le clip-path CSS qui est ultra fluide pour simuler une coupe
-            viewer.style.clipPath = "polygon(0 0, 100% 0, 100% 50%, 0 50%)";
+    // Fonction de coupe ultra-fluide
+    let clipped = false;
+    window.toggleClip = () => {
+        clipped = !clipped;
+        const btn = document.getElementById('btnClip');
+        if (clipped) {
+            // Coupe horizontale nette (ajustable de 0% à 100%)
+            viewer.style.clipPath = "inset(0 0 45% 0)";
+            btn.classList.add('active');
         } else {
             viewer.style.clipPath = "none";
+            btn.classList.remove('active');
         }
     };
 
-    // Initialisation
-    window.onload = () => setStyle('mono');
+    // Applique le style blanc dès que le modèle est chargé
+    viewer.addEventListener('load', () => {
+        applyStyle('mono');
+    });
 </script>
 
 </body>

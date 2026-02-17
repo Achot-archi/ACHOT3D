@@ -2,146 +2,126 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Architectural Portfolio Pro</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <title>BIM Viewer Pro</title>
     <style>
-        :root { --accent: #007aff; --bg: #ffffff; }
-        body { margin: 0; padding: 0; background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; color: #1d1d1f; }
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: #ffffff; }
+        canvas { width: 100vw; height: 100vh; display: block; }
         
-        model-viewer {
-            width: 100vw; height: 100vh;
-            background-color: var(--bg);
-            --poster-color: transparent;
-        }
-
-        /* Menu flottant style Apple / Notion */
         #menu {
-            position: absolute; top: 24px; left: 24px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            padding: 20px; border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-            z-index: 100; width: 220px;
-            border: 1px solid rgba(255,255,255,0.4);
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px);
+            padding: 20px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 100; width: 220px; border: 1px solid #eee;
         }
 
-        h3 { margin: 0 0 12px 0; font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
-        
-        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        h3 { margin: 0 0 12px 0; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
         
         button {
-            appearance: none; border: 1px solid #d2d2d7; border-radius: 8px;
-            background: rgba(255,255,255,0.5); color: #1d1d1f;
-            padding: 10px 14px; font-size: 13px; font-weight: 500;
-            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: left; display: flex; align-items: center; gap: 8px;
+            width: 100%; margin-bottom: 6px; padding: 10px;
+            border: 1px solid #ddd; border-radius: 8px;
+            background: white; cursor: pointer; transition: 0.2s;
+            font-size: 13px; font-weight: 500; text-align: left;
         }
-
-        button:hover { background: #ffffff; border-color: #86868b; transform: translateY(-1px); }
-        button.active { background: #1d1d1f; color: #ffffff; border-color: #1d1d1f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        button.active { background: #000; color: #fff; border-color: #000; }
         
-        /* Tooltip style */
-        .info { font-size: 11px; color: #86868b; margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; line-height: 1.5; }
+        .slider-label { font-size: 11px; color: #666; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; accent-color: #000; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h3>Style de la maquette</h3>
-    <div class="btn-group">
-        <button id="btnMono" class="active" onclick="applyStyle('mono')">
-            <span style="width:12px; height:12px; background:#fff; border:1px solid #d2d2d7; border-radius:50%"></span> 
-            Maquette Blanche
-        </button>
-        <button id="btnReal" onclick="applyStyle('real')">
-            <span style="width:12px; height:12px; background:linear-gradient(45deg, #ff3b30, #007aff); border-radius:50%"></span> 
-            Couleurs Réelles
-        </button>
-    </div>
+    <h3>Style Visuel</h3>
+    <button id="btnMono" class="active" onclick="updateStyle('mono')">⚪ Maquette Blanche</button>
+    <button id="btnReal" onclick="updateStyle('real')">🎨 Rendu Réaliste</button>
 
-    <h3>Analyse</h3>
-    <div class="btn-group">
-        <button id="btnClip" onclick="toggleClip()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-            Plan de Coupe (BIM)
-        </button>
-    </div>
+    <h3>Coupe BIM (Axe Y)</h3>
+    <span class="slider-label">Ajuster la hauteur de coupe</span>
+    <input type="range" id="clipY" min="-30" max="30" value="30" step="0.1">
     
-    <div class="info">
-        <b>Navigation :</b><br>
-        Clic gauche : Rotation<br>
+    <div style="font-size: 10px; color: #bbb; margin-top: 20px; line-height: 1.4;">
+        <b>SOURIS :</b><br>
+        Clic Gauche : Orbite<br>
+        Clic Droit : Pan (Déplacer)<br>
         Molette : Zoom
     </div>
 </div>
 
-<model-viewer id="viewer" 
-    src="projet1.glb" 
-    camera-controls 
-    enable-pan
-    shadow-intensity="2" 
-    shadow-softness="0.3"
-    exposure="1.1"
-    environment-image="neutral"
-    interpolation-decay="150"
-    interaction-prompt="none"
-    alt="Maquette architecturale 3D">
-</model-viewer>
+<canvas id="myCanvas"></canvas>
 
-<script>
-    const viewer = document.querySelector("#viewer");
+<script type="module">
+    // Importation des modules depuis le CDN officiel du SDK
+    import {Viewer, GLTFLoaderPlugin, SectionPlanesPlugin} from "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
 
-    // Fonction pour changer le style des matériaux
-    async function applyStyle(mode) {
-        const buttons = document.querySelectorAll('button');
-        buttons.forEach(b => b.classList.remove('active'));
+    // 1. Initialisation du Viewer
+    const viewer = new Viewer({
+        canvasId: "myCanvas",
+        transparent: false,
+        backgroundColor: [1, 1, 1] // Fond blanc
+    });
+
+    // Configuration de l'Occlusion Ambiante (SAO) pour le relief
+    const sao = viewer.scene.sao;
+    sao.enabled = true;
+    sao.intensity = 0.8;
+    sao.radius = 0.3;
+    sao.layers = 100;
+
+    // 2. Activation des Plugins
+    const loader = new GLTFLoaderPlugin(viewer);
+    const sections = new SectionPlanesPlugin(viewer);
+
+    // 3. Chargement du modèle projet1.glb
+    const model = loader.load({
+        id: "myModel",
+        src: "./projet1.glb",
+        edges: true, // Active les contours noirs (Rhino style)
+        saoEnabled: true
+    });
+
+    // Centrer la caméra une fois chargé
+    model.on("loaded", () => {
+        viewer.cameraFlight.jumpTo(model);
+        window.updateStyle('mono'); // Style par défaut
+    });
+
+    // 4. Système de Coupe SectionPlane
+    const planeY = sections.createSectionPlane({
+        id: "clipPlane",
+        pos: [0, 30, 0],   // Position initiale haute
+        dir: [0, -1, 0]    // Coupe vers le bas
+    });
+
+    document.getElementById("clipY").oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        planeY.pos = [0, val, 0];
+    };
+
+    // 5. Gestion des Styles (Maquette vs Réaliste)
+    window.updateStyle = (mode) => {
+        const allIds = viewer.scene.objectIds;
+        const btns = document.querySelectorAll('button');
+        btns.forEach(b => b.classList.remove('active'));
 
         if (mode === 'mono') {
             document.getElementById('btnMono').classList.add('active');
             
-            // On modifie les matériaux pour l'aspect plâtre/argile
-            const materials = viewer.model.materials;
-            materials.forEach((material) => {
-                // Force le blanc pur
-                material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
-                // Supprime les reflets pour un aspect mat type maquette
-                material.pbrMetallicRoughness.setRoughnessFactor(0.85);
-                material.pbrMetallicRoughness.setMetallicFactor(0);
-            });
-            
-            // On renforce les ombres pour marquer les angles (AO)
-            viewer.shadowIntensity = 3.5;
-            viewer.shadowSoftness = 0.4;
+            // Applique le blanc et les bords noirs
+            viewer.scene.setObjectsColor(allIds, [0.95, 0.95, 0.95]); // Gris très clair / blanc
+            viewer.scene.edgeMaterial.edges = true;
+            viewer.scene.edgeMaterial.edgeColor = [0.1, 0.1, 0.1]; // Contours noirs
+            viewer.scene.edgeMaterial.edgeWidth = 1.2;
         } 
         else {
             document.getElementById('btnReal').classList.add('active');
-            // On recharge le modèle pour restaurer textures et couleurs
-            viewer.src = "projet1.glb";
-            viewer.shadowIntensity = 1.5;
-        }
-    }
-
-    // Fonction de coupe ultra-fluide
-    let clipped = false;
-    window.toggleClip = () => {
-        clipped = !clipped;
-        const btn = document.getElementById('btnClip');
-        if (clipped) {
-            // Coupe horizontale nette (ajustable de 0% à 100%)
-            viewer.style.clipPath = "inset(0 0 45% 0)";
-            btn.classList.add('active');
-        } else {
-            viewer.style.clipPath = "none";
-            btn.classList.remove('active');
+            
+            // Restaure les textures et cache les bords noirs
+            viewer.scene.setObjectsColor(allIds, null);
+            viewer.scene.edgeMaterial.edges = false;
         }
     };
 
-    // Applique le style blanc dès que le modèle est chargé
-    viewer.addEventListener('load', () => {
-        applyStyle('mono');
-    });
 </script>
-
 </body>
 </html>
